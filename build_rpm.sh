@@ -134,12 +134,12 @@ esac
 CONFIG_HOST=$CONFIG_BUILD
 
 # Fetch the sources.
-curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.9.5/src/nspr-4.9.5.tar.gz | tar xvz
+curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.10.1/src/nspr-4.10.1.tar.gz | tar xvz
 curl -k -s -S http://rpm5.org/files/popt/popt-1.16.tar.gz | tar xvz
 [ ! $IS_ONLINE ] && curl -k -s -S http://zlib.net/zlib-1.2.8.tar.gz | tar xvz
-curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_14_3_RTM/src/nss-3.14.3.tar.gz | tar xvz
-curl -k -s -S ftp://ftp.fu-berlin.de/unix/tools/file/file-5.13.tar.gz | tar xvz
-curl -k -s -S http://download.oracle.com/berkeley-db/db-4.5.20.tar.gz | tar xvz
+curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_15_2_RTM/src/nss-3.15.2.tar.gz | tar xvz
+curl -k -s -S ftp://ftp.fu-berlin.de/unix/tools/file/file-5.15.tar.gz | tar xvz
+curl -k -s -S http://download.oracle.com/berkeley-db/db-4.8.30.tar.gz | tar xvz
 curl -k -s -S http://rpm.org/releases/rpm-4.8.x/rpm-4.8.0.tar.bz2 | tar xvj
 curl -k -s -S http://ftp.gnu.org/gnu/cpio/cpio-2.11.tar.bz2 | tar xvj
 
@@ -151,18 +151,17 @@ CFLAGS="-fPIC -O3 -DUSE_MMAP -DUNALIGNED_OK -D_LARGEFILE64_SOURCE=1" \
 make -j $BUILDPROCESSES && make install
 fi
 
-cd $HERE/file-5.13
+cd $HERE/file-5.15
 ./configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --disable-rpath --enable-static \
             --disable-shared --prefix $PREFIX CFLAGS=-fPIC LDFLAGS=$LDFLAGS
 make -j $BUILDPROCESSES && make install
 
-cd $HERE/nspr-4.9.5/mozilla/nsprpub
+cd $HERE/nspr-4.10.1/nspr
 ./configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --disable-rpath \
             --prefix $PREFIX $NSPR_CONFIGURE_OPTS
 make -j $BUILDPROCESSES && make install
 
-cd $HERE/nss-3.14.3
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/nss-3.14.3-add-ZLIB-LIBS-DIR-and-ZLIB-INCLUDE-DIR.patch?view=co" | patch -p1
+cd $HERE/nss-3.15.2
 export USE_64=$NSS_USE_64
 export NSPR_INCLUDE_DIR=$PREFIX/include/nspr
 export NSPR_LIB_DIR=$PREFIX/lib
@@ -170,30 +169,26 @@ export FREEBL_LOWHASH=1
 export USE_SYSTEM_ZLIB=1
 if [ ! $IS_ONLINE ]; then
   export ZLIB_INCLUDE_DIR="$PREFIX/include"
-  export ZLIB_LIBS_DIR="-L$PREFIX/lib"
+  export EXTRA_SHARED_LIBS="-L$PREFIX/lib"
 fi
- 
-make -C ./mozilla/security/coreconf clean
-make -C ./mozilla/security/dbm clean
-make -C ./mozilla/security/nss clean
-make -C ./mozilla/security/coreconf
-make -C ./mozilla/security/dbm
-make -C ./mozilla/security/nss
+
+make -C ./nss clean
+make -C ./nss
 install -d $PREFIX/include/nss3
 install -d $PREFIX/lib
-find mozilla/dist/public/nss -name '*.h' -exec install -m 644 {} $PREFIX/include/nss3 \;
-find . -path '*/mozilla/dist/*.OBJ/lib/*.dylib' -exec install -m 755 {} $PREFIX/lib \;
-find . -path '*/mozilla/dist/*.OBJ/lib/*.so' -exec install -m 755 {} $PREFIX/lib \;
+find dist/public/nss -name '*.h' -exec install -m 644 {} $PREFIX/include/nss3 \;
+find . -path '*/dist/*.OBJ/lib/*.dylib' -exec install -m 755 {} $PREFIX/lib \;
+find . -path '*/dist/*.OBJ/lib/*.so' -exec install -m 755 {} $PREFIX/lib \;
 
 cd $HERE/popt-1.16
 ./configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --disable-shared --enable-static \
             --disable-nls --prefix $PREFIX CFLAGS=-fPIC LDFLAGS=$LDFLAGS
 make -j $BUILDPROCESSES && make install
 
-cd $HERE/db-4.5.20/build_unix
+cd $HERE/db-4.8.30/build_unix
 ../dist/configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --enable-static \
-                  --disable-shared --disable-java --disable-rpc --prefix=$PREFIX \
-                  --with-posixmutexes CFLAGS=-fPIC LDFLAGS=$LDFLAGS
+                  --disable-shared --disable-java --prefix=$PREFIX \
+                  CFLAGS=-fPIC LDFLAGS=$LDFLAGS
 make -j $BUILDPROCESSES && make install
 
 # Build the actual rpm distribution.
