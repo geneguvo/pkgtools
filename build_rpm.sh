@@ -135,15 +135,16 @@ esac
 CONFIG_HOST=$CONFIG_BUILD
 
 # Fetch the sources.
-curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.10.1/src/nspr-4.10.1.tar.gz | tar xvz
+curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.10.8/src/nspr-4.10.8.tar.gz | tar xvz
 curl -k -s -S http://rpm5.org/files/popt/popt-1.16.tar.gz | tar xvz
 [ ! $IS_ONLINE ] && curl -k -s -S http://zlib.net/zlib-1.2.8.tar.gz | tar xvz
-curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_15_2_RTM/src/nss-3.15.2.tar.gz | tar xvz
-curl -k -s -S ftp://ftp.fu-berlin.de/unix/tools/file/file-5.15.tar.gz | tar xvz
+curl -k -s -S https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_19_2_RTM/src/nss-3.19.2.tar.gz | tar xvz
+curl -k -s -S ftp://ftp.fu-berlin.de/unix/tools/file/file-5.24.tar.gz | tar xvz
 curl -k -s -S http://download.oracle.com/berkeley-db/db-4.8.30.tar.gz | tar xvz
 curl -k -s -S http://rpm.org/releases/rpm-4.8.x/rpm-4.8.0.tar.bz2 | tar xvj
 curl -k -s -S http://ftp.gnu.org/gnu/cpio/cpio-2.11.tar.bz2 | tar xvj
 
+set -x
 # Build required externals.
 if [ ! $IS_ONLINE ]; then
 cd $HERE/zlib-1.2.8
@@ -152,17 +153,17 @@ CFLAGS="-fPIC -O3 -DUSE_MMAP -DUNALIGNED_OK -D_LARGEFILE64_SOURCE=1" \
 make -j $BUILDPROCESSES && make install
 fi
 
-cd $HERE/file-5.15
+cd $HERE/file-5.24
 ./configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --disable-rpath --enable-static \
             --disable-shared --prefix $PREFIX CFLAGS=-fPIC LDFLAGS=$LDFLAGS
 make -j $BUILDPROCESSES && make install
 
-cd $HERE/nspr-4.10.1/nspr
+cd $HERE/nspr-4.10.8/nspr
 ./configure --host="${CONFIG_HOST}" --build="${CONFIG_BUILD}" --disable-rpath \
             --prefix $PREFIX $NSPR_CONFIGURE_OPTS
 make -j $BUILDPROCESSES && make install
 
-cd $HERE/nss-3.15.2
+cd $HERE/nss-3.19.2
 export USE_64=$NSS_USE_64
 export NSPR_INCLUDE_DIR=$PREFIX/include/nspr
 export NSPR_LIB_DIR=$PREFIX/lib
@@ -195,20 +196,21 @@ make -j $BUILDPROCESSES && make install
 # Build the actual rpm distribution.
 cd $HERE/rpm-4.8.0
 rm -rf lib/rpmhash.*
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-case-insensitive-sources.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-add-missing-__fxstat64.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-case-insensitive-fixes.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-fix-glob_pattern_p.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-fix-arm.patch?view=co" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-remove-chroot-check.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-remove-strndup.patch?revision=1.1" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-allow-empty-buildroot.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-fix-missing-libgen.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-fix-find-provides.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-increase-line-buffer.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-increase-macro-buffer.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-fix-fontconfig-provides.patch?revision=HEAD" | patch -p1
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/rpm-4.8.0-disable-internal-dependency-generator-libtool.patch?revision=HEAD" | patch -p1
+REPO=https://raw.githubusercontent.com/cms-sw/cmsdist/IB/CMSSW_7_2_X/stable
+curl -s -S "$REPO/rpm-4.8.0-case-insensitive-sources.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-add-missing-__fxstat64.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-case-insensitive-fixes.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-fix-glob_pattern_p.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-fix-arm.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-remove-chroot-check.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-remove-strndup.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-allow-empty-buildroot.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-fix-missing-libgen.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-fix-find-provides.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-increase-line-buffer.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-increase-macro-buffer.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-fix-fontconfig-provides.patch" | patch -p1
+curl -s -S "$REPO/rpm-4.8.0-disable-internal-dependency-generator-libtool.patch" | patch -p1
 
 case `uname` in
   Darwin)
@@ -246,7 +248,7 @@ ln -sf $PREFIX/bin/rpm $PREFIX/bin/rpmquery
 
 # Install GNU cpio
 cd $HERE/cpio-2.11
-curl "http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/COMP/CMSDIST/cpio-2.11-stdio.in-gets.patch?view=co" | patch -p1
+curl -s -S "https://raw.github.com/cms-sw/cmsdist/IB/CMSSW_7_1_X/stable/cpio-2.11-stdio.in-gets.patch" | patch -p1
 
 # For Mac OS X patch cpio, otherwise compilation will fail
 # NOTE: This patch should not be needed for newer GNU cpio
